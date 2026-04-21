@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Drum Tuner Mobile</title>
+<title>Drum Tuner Pro - Barreta</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -14,96 +14,118 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: 'DM Mono', monospace; min-height: 100vh;
-    padding: 10px;
+    font-family: 'DM Mono', monospace; min-height: 100vh; padding: 15px;
   }
-  header { padding: 15px 5px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--accent); }
-  
-  /* Botones grandes para móviles */
-  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  header { padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--accent); letter-spacing: 1px; }
+
+  /* Configuración de Estilos */
+  .config-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 15px; border-radius: 10px; margin-bottom: 20px;
+  }
+  label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+  select {
+    width: 100%; background: #222; color: var(--text); border: 1px solid var(--border);
+    padding: 12px; border-radius: 5px; font-family: inherit; font-size: 1rem;
+  }
+
+  /* Grilla de Cuerpos */
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
   .btn {
     background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); padding: 15px 10px; border-radius: 8px;
-    font-size: 0.8rem; text-transform: uppercase; cursor: pointer;
+    color: var(--text); padding: 14px 5px; border-radius: 8px;
+    font-size: 0.75rem; text-transform: uppercase; transition: 0.2s;
   }
   .btn.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
-  
+
+  /* Tuner Display */
   .tuner-card {
     background: var(--surface); border: 1px solid var(--border);
-    padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px;
+    padding: 25px 15px; border-radius: 15px; text-align: center;
   }
   .mic-btn {
-    width: 100%; padding: 18px; font-size: 1rem; font-weight: bold;
-    background: var(--surface); color: var(--accent); border: 2px solid var(--accent);
+    width: 100%; padding: 16px; font-size: 0.9rem; font-weight: bold;
+    background: transparent; color: var(--accent); border: 2px solid var(--accent);
     border-radius: 50px; margin-bottom: 20px;
   }
   .mic-btn.on { background: var(--red); color: white; border-color: var(--red); }
   
-  .note-display { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: 1; margin: 10px 0; }
-  .freq-display { color: var(--muted); font-size: 1rem; margin-bottom: 15px; }
-  
-  /* Medidor táctil */
-  .meter-container { height: 10px; background: #222; border-radius: 5px; position: relative; margin: 25px 0; }
+  .note-display { font-family: 'Bebas Neue', sans-serif; font-size: 5.5rem; line-height: 1; margin: 10px 0; }
+  .meter-container { height: 8px; background: #222; border-radius: 4px; position: relative; margin: 30px 0; }
   .needle {
-    position: absolute; width: 4px; height: 30px; background: var(--text);
-    top: -10px; left: 50%; transform: translateX(-50%); transition: left 0.1s;
+    position: absolute; width: 4px; height: 30px; background: var(--accent);
+    top: -11px; left: 50%; transform: translateX(-50%); transition: left 0.1s linear;
   }
   .center-mark { position: absolute; left: 50%; height: 100%; width: 2px; background: var(--muted); }
-
-  .status-text { font-size: 0.8rem; letter-spacing: 1px; height: 20px; text-transform: uppercase; }
+  #statusOut { font-size: 0.75rem; font-weight: bold; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Drum Tuner</h1>
-  <p style="font-size: 0.6rem; color: var(--muted);">OPTIMIZADO PARA MÓVIL</p>
+  <h1>Drum Tuner Pro</h1>
 </header>
+
+<div class="config-panel">
+  <label>Estilo de afinación</label>
+  <select id="tuningStyle" onchange="updateTuningStyle()">
+    <option value="standard">Estándar (Equilibrado)</option>
+    <option value="rock">Rock / Pesado (Grave)</option>
+    <option value="jazz">Jazz / Funk (Alta)</option>
+  </select>
+</div>
 
 <button class="mic-btn" id="micBtn">▶ ACTIVAR MICRÓFONO</button>
 
-<div class="section-label" style="font-size:0.7rem; color:var(--muted); margin-bottom:10px;">PRESETS</div>
 <div class="preset-grid" id="presetGrid">
-  <button class="btn active" onclick="setTarget('D', 2, 'BOMBO')">BOMBO (D2)</button>
-  <button class="btn" onclick="setTarget('A', 3, 'REDO')">REDO (A3)</button>
-  <button class="btn" onclick="setTarget('D', 4, 'TOM 1')">TOM 1 (D4)</button>
-  <button class="btn" onclick="setTarget('A', 3, 'TOM 2')">TOM 2 (A3)</button>
+  <button class="btn active" onclick="setTarget('D', 2, 'BOMBO', this)">BOMBO</button>
+  <button class="btn" onclick="setTarget('A', 3, 'REDO', this)">REDO</button>
+  <button class="btn" onclick="setTarget('D', 4, 'TOM 1', this)">TOM 1</button>
+  <button class="btn" onclick="setTarget('A', 3, 'TOM 2', this)">TOM 2</button>
+  <button class="btn" onclick="setTarget('G', 2, 'CHANCHA', this)">CHANCHA</button>
 </div>
 
 <div class="tuner-card">
-  <div id="targetLabel" style="font-size: 0.7rem; color: var(--accent);">OBJETIVO: BOMBO (D2)</div>
+  <div id="targetLabel" style="font-size: 0.7rem; color: var(--accent); margin-bottom: 5px;">OBJETIVO: BOMBO (D2)</div>
   <div class="note-display" id="noteOut">—</div>
-  <div class="freq-display" id="freqOut">0.0 Hz</div>
+  <div id="freqOut" style="color: var(--muted); margin-bottom: 15px;">0.0 Hz</div>
   
   <div class="meter-container">
     <div class="center-mark"></div>
     <div class="needle" id="needle"></div>
   </div>
-  <div class="status-text" id="statusOut">ESPERANDO SEÑAL...</div>
+  <div id="statusOut">ESPERANDO SEÑAL...</div>
 </div>
 
 <script>
-let audioCtx, analyser, micStream;
-let targetFreq = 73.42; // D2 por defecto
+let audioCtx, analyser;
+let targetFreq = 73.42; 
 
-const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const TUNINGS = {
+  standard: { BOMBO: [73.4, 'D2'], REDO: [220.0, 'A3'], 'TOM 1': [146.8, 'D3'], 'TOM 2': [110.0, 'A2'], CHANCHA: [98.0, 'G2'] },
+  rock: { BOMBO: [65.4, 'C2'], REDO: [196.0, 'G3'], 'TOM 1': [130.8, 'C3'], 'TOM 2': [98.0, 'G2'], CHANCHA: [82.4, 'E2'] },
+  jazz: { BOMBO: [82.4, 'E2'], REDO: [246.9, 'B3'], 'TOM 1': [174.6, 'F3'], 'TOM 2': [130.8, 'C3'], CHANCHA: [110.0, 'A2'] }
+};
 
-function setTarget(note, oct, name) {
-  const idx = NOTES.indexOf(note);
-  targetFreq = 440 * Math.pow(2, ((oct - 4) * 12 + idx - 9) / 12);
-  document.getElementById('targetLabel').innerText = `OBJETIVO: ${name} (${note}${oct})`;
+function updateTuningStyle() {
+  const style = document.getElementById('tuningStyle').value;
+  const activeBtn = document.querySelector('.btn.active');
+  if(activeBtn) activeBtn.click();
+}
+
+function setTarget(name, dummy, label, element) {
+  const style = document.getElementById('tuningStyle').value;
+  const data = TUNINGS[style][label];
+  targetFreq = data[0];
+  document.getElementById('targetLabel').innerText = `OBJETIVO: ${label} (${data[1]})`;
   
   document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  element.classList.add('active');
 }
 
 document.getElementById('micBtn').addEventListener('click', async () => {
-  if (audioCtx) {
-    location.reload(); // Forma más limpia de resetear en móvil
-    return;
-  }
-
+  if (audioCtx) { location.reload(); return; }
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -111,13 +133,10 @@ document.getElementById('micBtn').addEventListener('click', async () => {
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     source.connect(analyser);
-    
     document.getElementById('micBtn').innerText = "■ DETENER";
     document.getElementById('micBtn').classList.add('on');
     update();
-  } catch (err) {
-    alert("Error de micrófono: " + err);
-  }
+  } catch (err) { alert("Error: " + err); }
 });
 
 function update() {
@@ -128,13 +147,7 @@ function update() {
   if (freq > 0) {
     const cents = 1200 * Math.log2(freq / targetFreq);
     document.getElementById('freqOut').innerText = freq.toFixed(1) + " Hz";
-    
-    // Calcular nota más cercana
-    const semitones = 12 * Math.log2(freq / 440);
-    const noteIdx = (Math.round(semitones) % 12 + 12 + 9) % 12;
-    document.getElementById('noteOut').innerText = NOTES[noteIdx];
-
-    // Mover aguja
+    document.getElementById('noteOut').innerText = getNoteName(freq);
     const pos = Math.max(0, Math.min(100, 50 + (cents / 2)));
     document.getElementById('needle').style.left = pos + "%";
     
@@ -142,15 +155,21 @@ function update() {
     if (Math.abs(cents) < 5) {
       status.innerText = "✓ AFINADO"; status.style.color = "#4ae8a0";
     } else {
-      status.innerText = cents > 0 ? "▲ DEMASIADO ALTO" : "▼ DEMASIADO BAJO";
+      status.innerText = cents > 0 ? "▲ ALTO" : "▼ BAJO";
       status.style.color = cents > 0 ? "#e07a3a" : "#4ab8e8";
     }
   }
   requestAnimationFrame(update);
 }
 
+function getNoteName(f) {
+  const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const s = 12 * Math.log2(f / 440);
+  return notes[(Math.round(s) % 12 + 12 + 9) % 12];
+}
+
 function getPitch(buf, sr) {
-  let minPos = 0, maxPos = 0, maxVal = -1;
+  let maxPos = 0, maxVal = -1;
   for (let i = 0; i < buf.length / 2; i++) {
     let sum = 0;
     for (let j = 0; j < buf.length / 2; j++) sum += buf[j] * buf[j + i];
