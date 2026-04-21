@@ -2,807 +2,162 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drum Tuner</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Drum Tuner Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0e0e0e;
-    --surface: #161616;
-    --surface2: #1e1e1e;
-    --border: #2a2a2a;
-    --accent: #e8c84a;
-    --accent2: #e07a3a;
-    --text: #f0ede8;
-    --muted: #666;
-    --green: #4ae8a0;
-    --red: #e84a5f;
-    --blue: #4ab8e8;
+    --bg: #0e0e0e; --surface: #161616; --border: #2a2a2a;
+    --accent: #e8c84a; --text: #f0ede8; --muted: #666;
+    --green: #4ae8a0; --blue: #4ab8e8; --red: #e84a5f;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Mono', monospace; min-height: 100vh;
+    padding: 10px;
   }
+  header { padding: 15px 5px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--accent); }
+  
+  /* Botones grandes para móviles */
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 15px 10px; border-radius: 8px;
+    font-size: 0.8rem; text-transform: uppercase; cursor: pointer;
+  }
+  .btn.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+  
+  .tuner-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px;
+  }
+  .mic-btn {
+    width: 100%; padding: 18px; font-size: 1rem; font-weight: bold;
+    background: var(--surface); color: var(--accent); border: 2px solid var(--accent);
+    border-radius: 50px; margin-bottom: 20px;
+  }
+  .mic-btn.on { background: var(--red); color: white; border-color: var(--red); }
+  
+  .note-display { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: 1; margin: 10px 0; }
+  .freq-display { color: var(--muted); font-size: 1rem; margin-bottom: 15px; }
+  
+  /* Medidor táctil */
+  .meter-container { height: 10px; background: #222; border-radius: 5px; position: relative; margin: 25px 0; }
+  .needle {
+    position: absolute; width: 4px; height: 30px; background: var(--text);
+    top: -10px; left: 50%; transform: translateX(-50%); transition: left 0.1s;
+  }
+  .center-mark { position: absolute; left: 50%; height: 100%; width: 2px; background: var(--muted); }
 
-  /* Grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0.5;
-  }
-
-  header {
-    padding: 2rem 2rem 1rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: baseline;
-    gap: 1.5rem;
-  }
-
-  h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3.5rem;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .subtitle {
-    font-size: 0.7rem;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-
-  .main-layout {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    min-height: calc(100vh - 90px);
-  }
-
-  /* LEFT PANEL */
-  .left-panel {
-    border-right: 1px solid var(--border);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .section-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.75rem;
-  }
-
-  /* Preset selector */
-  .preset-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  .preset-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    padding: 0.6rem 0.5rem;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition: all 0.15s;
-    text-align: center;
-  }
-
-  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .preset-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
-    font-weight: 500;
-  }
-
-  .preset-name {
-    display: block;
-    font-size: 0.75rem;
-    margin-bottom: 0.2rem;
-  }
-  .preset-root {
-    display: block;
-    font-size: 0.6rem;
-    opacity: 0.7;
-  }
-
-  /* Kit builder */
-  .kit-builder {
-    flex: 1;
-  }
-
-  .add-drum-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .select-drum {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    padding: 0.5rem;
-    cursor: pointer;
-    appearance: none;
-  }
-
-  .btn-add {
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem;
-    width: 36px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: opacity 0.15s;
-  }
-  .btn-add:hover { opacity: 0.85; }
-
-  .drum-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .drum-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 0.5rem 0.6rem;
-    cursor: pointer;
-    transition: border-color 0.15s;
-    position: relative;
-  }
-  .drum-item:hover { border-color: var(--accent); }
-  .drum-item.selected { border-color: var(--accent); background: #1f1c0e; }
-
-  .drum-icon {
-    font-size: 1.1rem;
-    width: 22px;
-    text-align: center;
-  }
-
-  .drum-info { flex: 1; }
-  .drum-name { font-size: 0.7rem; letter-spacing: 0.05em; }
-  .drum-target {
-    font-size: 0.65rem;
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  .btn-remove {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0.2rem;
-    line-height: 1;
-    transition: color 0.15s;
-  }
-  .btn-remove:hover { color: var(--red); }
-
-  /* RIGHT PANEL */
-  .right-panel {
-    padding: 1.5rem 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  /* Tuner display */
-  .tuner-display {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .tuner-display::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    animation: scanline 3s ease-in-out infinite;
-  }
-
-  @keyframes scanline {
-    0%, 100% { opacity: 0; transform: scaleX(0.3); }
-    50% { opacity: 1; transform: scaleX(1); }
-  }
-
-  .tuner-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-
-  .listening-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-  }
-
-  .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--muted);
-  }
-  .dot.active {
-    background: var(--green);
-    animation: pulse 1s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .btn-mic {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    padding: 0.4rem 0.8rem;
-    cursor: pointer;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: all 0.15s;
-  }
-  .btn-mic:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-mic.on { background: var(--green); border-color: var(--green); color: #000; }
-
-  /* Big note display */
-  .note-big {
-    text-align: center;
-    padding: 1rem 0;
-  }
-
-  .detected-note {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 5rem;
-    line-height: 1;
-    color: var(--text);
-    transition: color 0.3s;
-    letter-spacing: 0.05em;
-  }
-  .detected-note.in-tune { color: var(--green); }
-  .detected-note.sharp { color: var(--accent2); }
-  .detected-note.flat { color: var(--blue); }
-
-  .detected-freq {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 0.25rem;
-    letter-spacing: 0.1em;
-  }
-
-  .target-note-label {
-    font-size: 0.65rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 0.5rem;
-  }
-  .target-note-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.8rem;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-  }
-
-  /* Cents meter */
-  .cents-meter {
-    margin: 1rem 0;
-    position: relative;
-  }
-
-  .meter-track {
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    position: relative;
-    overflow: visible;
-  }
-
-  .meter-center {
-    position: absolute;
-    left: 50%;
-    top: -4px;
-    width: 2px;
-    height: 14px;
-    background: var(--border);
-    transform: translateX(-50%);
-  }
-
-  .meter-fill {
-    position: absolute;
-    height: 100%;
-    background: var(--green);
-    border-radius: 3px;
-    transition: all 0.1s;
-    top: 0;
-  }
-
-  .meter-needle {
-    position: absolute;
-    top: -6px;
-    width: 14px;
-    height: 18px;
-    background: var(--text);
-    transform: translateX(-50%);
-    border-radius: 2px;
-    transition: left 0.1s;
-    left: 50%;
-  }
-
-  .meter-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.55rem;
-    color: var(--muted);
-    margin-top: 0.4rem;
-    letter-spacing: 0.1em;
-  }
-
-  .tune-status {
-    text-align: center;
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    margin-top: 0.5rem;
-    height: 1.2em;
-  }
-  .tune-status.in-tune { color: var(--green); }
-  .tune-status.sharp { color: var(--accent2); }
-  .tune-status.flat { color: var(--blue); }
-
-  /* Pitch history */
-  .pitch-history {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 40px;
-    margin-top: 0.5rem;
-  }
-
-  .history-bar {
-    flex: 1;
-    background: var(--border);
-    border-radius: 1px;
-    transition: height 0.1s, background 0.2s;
-    min-height: 2px;
-  }
-
-  /* Kit overview */
-  .kit-overview {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 1.5rem;
-  }
-
-  .kit-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
-  }
-
-  .kit-card {
-    border: 1px solid var(--border);
-    padding: 0.75rem;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-  }
-  .kit-card:hover { border-color: var(--accent); }
-  .kit-card.selected { border-color: var(--accent); background: #1f1c0e; }
-  .kit-card.in-tune { border-color: var(--green); }
-
-  .kit-card-icon { font-size: 1.4rem; margin-bottom: 0.3rem; }
-  .kit-card-name { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-  .kit-card-note {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.5rem;
-    color: var(--accent);
-    line-height: 1.1;
-  }
-  .kit-card-freq { font-size: 0.55rem; color: var(--muted); }
-
-  .kit-card-status {
-    position: absolute;
-    top: 0.4rem;
-    right: 0.4rem;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--border);
-  }
-  .kit-card-status.in-tune { background: var(--green); }
-
-  /* Intervals info */
-  .intervals-info {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 1.2rem 1.5rem;
-  }
-
-  .intervals-row {
-    display: flex;
-    gap: 0.4rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 0.75rem;
-  }
-
-  .interval-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 0.3rem 0.6rem;
-    font-size: 0.65rem;
-  }
-
-  .interval-arrow {
-    color: var(--muted);
-    font-size: 0.7rem;
-  }
-
-  .interval-note {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1rem;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-  }
-
-  .interval-label {
-    font-size: 0.55rem;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  /* Responsive */
-  @media (max-width: 700px) {
-    .main-layout { grid-template-columns: 1fr; }
-    .left-panel { border-right: none; border-bottom: 1px solid var(--border); }
-    h1 { font-size: 2.5rem; }
-  }
-
-  .empty-state {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 2rem;
-  }
-
-  select option { background: #1e1e1e; }
+  .status-text { font-size: 0.8rem; letter-spacing: 1px; height: 20px; text-transform: uppercase; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Drum Tuner</h1>
-  <span class="subtitle">Afinación por quintas ·  Percusión cromática</span>
+  <p style="font-size: 0.6rem; color: var(--muted);">OPTIMIZADO PARA MÓVIL</p>
 </header>
 
-<div class="main-layout">
+<button class="mic-btn" id="micBtn">▶ ACTIVAR MICRÓFONO</button>
 
-  <!-- LEFT PANEL -->
-  <div class="left-panel">
+<div class="section-label" style="font-size:0.7rem; color:var(--muted); margin-bottom:10px;">PRESETS</div>
+<div class="preset-grid" id="presetGrid">
+  <button class="btn active" onclick="setTarget('D', 2, 'BOMBO')">BOMBO (D2)</button>
+  <button class="btn" onclick="setTarget('A', 3, 'REDO')">REDO (A3)</button>
+  <button class="btn" onclick="setTarget('D', 4, 'TOM 1')">TOM 1 (D4)</button>
+  <button class="btn" onclick="setTarget('A', 3, 'TOM 2')">TOM 2 (A3)</button>
+</div>
 
-    <div>
-      <div class="section-label">Preset de afinación</div>
-      <div class="preset-grid" id="presetGrid"></div>
-    </div>
-
-    <div class="kit-builder">
-      <div class="section-label">Kit actual</div>
-      <div class="add-drum-row">
-        <select class="select-drum" id="drumTypeSelect"></select>
-        <button class="btn-add" onclick="addDrum()">+</button>
-      </div>
-      <div class="drum-list" id="drumList"></div>
-    </div>
-
+<div class="tuner-card">
+  <div id="targetLabel" style="font-size: 0.7rem; color: var(--accent);">OBJETIVO: BOMBO (D2)</div>
+  <div class="note-display" id="noteOut">—</div>
+  <div class="freq-display" id="freqOut">0.0 Hz</div>
+  
+  <div class="meter-container">
+    <div class="center-mark"></div>
+    <div class="needle" id="needle"></div>
   </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
-
-    <!-- Tuner -->
-    <div class="tuner-display">
-      <div class="tuner-header">
-        <div class="listening-badge">
-          <div class="dot" id="listeningDot"></div>
-          <span id="listeningLabel">Micrófono inactivo</span>
-        </div>
-        <button class="btn-mic" id="micBtn" onclick="toggleMic()">▶ Activar micrófono</button>
-      </div>
-
-      <div class="note-big">
-        <div class="detected-note" id="detectedNote">—</div>
-        <div class="detected-freq" id="detectedFreq">— Hz</div>
-        <div class="target-note-label">Nota objetivo</div>
-        <div class="target-note-value" id="targetNoteDisplay">—</div>
-      </div>
-
-      <div class="cents-meter">
-        <div class="meter-track">
-          <div class="meter-center"></div>
-          <div class="meter-fill" id="meterFill"></div>
-          <div class="meter-needle" id="meterNeedle"></div>
-        </div>
-        <div class="meter-labels">
-          <span>−50¢</span>
-          <span>BEMOL</span>
-          <span>0¢</span>
-          <span>SOSTENIDO</span>
-          <span>+50¢</span>
-        </div>
-      </div>
-
-      <div class="tune-status" id="tuneStatus"></div>
-
-      <div class="pitch-history" id="pitchHistory"></div>
-    </div>
-
-    <!-- Kit overview -->
-    <div class="kit-overview">
-      <div class="section-label">Visión general del kit</div>
-      <div class="intervals-info">
-        <div style="font-size:0.65rem; color:var(--muted); letter-spacing:0.05em;">
-          Intervalos de quinta justa (7 semitonos) entre cuerpos
-        </div>
-        <div class="intervals-row" id="intervalsRow"></div>
-      </div>
-      <div class="kit-grid" id="kitGrid"></div>
-    </div>
-
-  </div>
+  <div class="status-text" id="statusOut">ESPERANDO SEÑAL...</div>
 </div>
 
 <script>
-// ─── MUSIC DATA ───────────────────────────────────────────────────────────────
+let audioCtx, analyser, micStream;
+let targetFreq = 73.42; // D2 por defecto
 
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const NOTE_ES = {
-  'C':'Do','C#':'Do#','D':'Re','D#':'Re#','E':'Mi',
-  'F':'Fa','F#':'Fa#','G':'Sol','G#':'Sol#','A':'La','A#':'La#','B':'Si'
-};
 
-function noteToFreq(note, octave) {
+function setTarget(note, oct, name) {
   const idx = NOTES.indexOf(note);
-  const semitones = (octave - 4) * 12 + idx - 9; // relative to A4=440
-  return 440 * Math.pow(2, semitones / 12);
+  targetFreq = 440 * Math.pow(2, ((oct - 4) * 12 + idx - 9) / 12);
+  document.getElementById('targetLabel').innerText = `OBJETIVO: ${name} (${note}${oct})`;
+  
+  document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
-function freqToNote(freq) {
-  if (freq <= 0) return null;
-  const semitones = 12 * Math.log2(freq / 440);
-  const rounded = Math.round(semitones);
-  const cents = (semitones - rounded) * 100;
-  const noteIdx = ((rounded % 12) + 12 + 9) % 12; // A=9 offset
-  const octave = Math.floor((rounded + 9) / 12) + 4;
-  return { note: NOTES[noteIdx], octave, cents, freq };
-}
-
-// Perfect fifth = 7 semitones
-function fifthUp(note) {
-  const idx = NOTES.indexOf(note);
-  return NOTES[(idx + 7) % 12];
-}
-
-function buildFifthsChain(root, count) {
-  const chain = [root];
-  for (let i = 1; i < count; i++) {
-    chain.push(fifthUp(chain[i - 1]));
+document.getElementById('micBtn').addEventListener('click', async () => {
+  if (audioCtx) {
+    location.reload(); // Forma más limpia de resetear en móvil
+    return;
   }
-  return chain;
-}
 
-// ─── DRUM TYPES ───────────────────────────────────────────────────────────────
-
-const DRUM_TYPES = [
-  { id: 'kick',    name: 'Bombo',         icon: '🥁', octave: 2 },
-  { id: 'snare',   name: 'Redoblante',    icon: '🪘', octave: 3 },
-  { id: 'tom1',    name: 'Tom 1',         icon: '🔵', octave: 4 },
-  { id: 'tom2',    name: 'Tom 2',         icon: '🟡', octave: 3 },
-  { id: 'tom3',    name: 'Tom 3 / Piso',  icon: '🟠', octave: 3 },
-  { id: 'bongo_h', name: 'Bongó agudo',   icon: '🫧', octave: 5 },
-  { id: 'bongo_l', name: 'Bongó grave',   icon: '🫧', octave: 4 },
-  { id: 'conga_h', name: 'Conga aguda',   icon: '🟤', octave: 4 },
-  { id: 'conga_l', name: 'Conga grave',   icon: '⚫', octave: 3 },
-  { id: 'timbale', name: 'Timbal',        icon: '⭕', octave: 5 },
-  { id: 'djembe',  name: 'Djembe',        icon: '🔺', octave: 4 },
-];
-
-// ─── PRESETS ──────────────────────────────────────────────────────────────────
-
-const PRESETS = [
-  {
-    id: 'rock', name: 'Rock', root: 'D',
-    drums: [
-      { type: 'kick',  noteOffset: 0 },
-      { type: 'snare', noteOffset: 7 },
-      { type: 'tom1',  noteOffset: 14 },
-      { type: 'tom2',  noteOffset: 7 },
-      { type: 'tom3',  noteOffset: 0 },
-    ]
-  },
-  {
-    id: 'jazz', name: 'Jazz', root: 'F',
-    drums: [
-      { type: 'kick',  noteOffset: 0 },
-      { type: 'snare', noteOffset: 7 },
-      { type: 'tom1',  noteOffset: 14 },
-      { type: 'tom2',  noteOffset: 7 },
-    ]
-  },
-  {
-    id: 'latin', name: 'Latin', root: 'G',
-    drums: [
-      { type: 'conga_h', noteOffset: 7 },
-      { type: 'conga_l', noteOffset: 0 },
-      { type: 'bongo_h', noteOffset: 14 },
-      { type: 'bongo_l', noteOffset: 7 },
-      { type: 'timbale', noteOffset: 21 },
-    ]
-  },
-  {
-    id: 'afro', name: 'Afro', root: 'A',
-    drums: [
-      { type: 'djembe',  noteOffset: 14 },
-      { type: 'conga_h', noteOffset: 7 },
-      { type: 'conga_l', noteOffset: 0 },
-    ]
-  },
-  {
-    id: 'custom_e', name: 'E minor', root: 'E',
-    drums: [
-      { type: 'kick',  noteOffset: 0 },
-      { type: 'snare', noteOffset: 7 },
-      { type: 'tom1',  noteOffset: 14 },
-      { type: 'tom2',  noteOffset: 7 },
-      { type: 'tom3',  noteOffset: 0 },
-    ]
-  },
-  {
-    id: 'custom_a', name: 'A blues', root: 'A',
-    drums: [
-      { type: 'kick',  noteOffset: 0 },
-      { type: 'snare', noteOffset: 7 },
-      { type: 'tom1',  noteOffset: 14 },
-      { type: 'tom2',  noteOffset: 7 },
-    ]
-  },
-];
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
-
-let kit = [];         // { id, type, name, icon, targetNote, targetOctave, targetFreq }
-let selectedDrumId = null;
-let activePreset = null;
-let micActive = false;
-let audioCtx = null;
-let analyser = null;
-let micStream = null;
-let animFrame = null;
-let historyBars = 30;
-let history = new Array(historyBars).fill(0);
-let lastDetected = null;
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-
-function init() {
-  renderPresets();
-  populateDrumSelect();
-  loadPreset(PRESETS[0]);
-  renderPitchHistory();
-}
-
-// ─── PRESETS ──────────────────────────────────────────────────────────────────
-
-function renderPresets() {
-  const grid = document.getElementById('presetGrid');
-  grid.innerHTML = PRESETS.map(p => `
-    <button class="preset-btn ${activePreset === p.id ? 'active' : ''}" onclick="loadPreset(PRESETS.find(x=>x.id==='${p.id}'))">
-      <span class="preset-name">${p.name}</span>
-      <span class="preset-root">Raíz: ${NOTE_ES[p.root]}</span>
-    </button>
-  `).join('');
-}
-
-function loadPreset(preset) {
-  activePreset = preset.id;
-  const root = preset.root;
-  const fifths = buildFifthsChain(root, 6);
-
-  kit = preset.drums.map((d, i) => {
-    const dtype = DRUM_TYPES.find(x => x.id === d.type);
-    const noteIdx = NOTES.indexOf(root);
-    const targetNoteIdx = (noteIdx + d.noteOffset) % 12;
-    const targetNote = NOTES[targetNoteIdx];
-    const targetOctave = dtype.octave;
-    const targetFreq = noteToFreq(targetNote, targetOctave);
-    return {
-      id: `${d.type}_${i}`,
-      type: d.type,
-      name: dtype.name,
-      icon: dtype.icon,
-      targetNote,
-      targetOctave,
-      targetFreq,
-    };
-  });
-
-  if (kit.length > 0) selectedDrumId = kit[0].id;
-
-  renderPresets();
-  renderDrumList();
-  renderKitGrid();
-  renderIntervals();
-  updateTargetDisplay();
-}
-
-// ─── DRUM SELECT ──────────────────────────────────────────────────────────────
-
-function populateDrumSelect() {
-  const sel = document.getElementById('drumTypeSelect');
-  sel.innerHTML = DRUM_TYPES.map(d =>
-    `<option value="${d.id}">${d.icon} ${d.name}</option>`
-  ).join('');
-}
-
-function addDrum() {
-  const sel = document.getElementById('drumTypeSelect');
-  const typeId = sel.value;
-  const dtype = DRUM_TYPES.find(x => x.id === typeId);
-
-  // Assign target note: continue the fifths chain from last drum
-  let targetNote = 'C', targetOctave = dtype.octave;
-  if (kit.length > 0) {
-    const last = kit[kit.length - 1];
-    targetNote = fifthUp(last.targetNote);
-    targetOctave = last.targetOctave;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    
+    document.getElementById('micBtn').innerText = "■ DETENER";
+    document.getElementById('micBtn').classList.add('on');
+    update();
+  } catch (err) {
+    alert("Error de micrófono: " + err);
   }
-  const targetFreq = noteToFreq(targetNote, targetOctave);
+});
 
-  const
+function update() {
+  const buffer = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buffer);
+  const freq = getPitch(buffer, audioCtx.sampleRate);
+
+  if (freq > 0) {
+    const cents = 1200 * Math.log2(freq / targetFreq);
+    document.getElementById('freqOut').innerText = freq.toFixed(1) + " Hz";
+    
+    // Calcular nota más cercana
+    const semitones = 12 * Math.log2(freq / 440);
+    const noteIdx = (Math.round(semitones) % 12 + 12 + 9) % 12;
+    document.getElementById('noteOut').innerText = NOTES[noteIdx];
+
+    // Mover aguja
+    const pos = Math.max(0, Math.min(100, 50 + (cents / 2)));
+    document.getElementById('needle').style.left = pos + "%";
+    
+    const status = document.getElementById('statusOut');
+    if (Math.abs(cents) < 5) {
+      status.innerText = "✓ AFINADO"; status.style.color = "#4ae8a0";
+    } else {
+      status.innerText = cents > 0 ? "▲ DEMASIADO ALTO" : "▼ DEMASIADO BAJO";
+      status.style.color = cents > 0 ? "#e07a3a" : "#4ab8e8";
+    }
+  }
+  requestAnimationFrame(update);
+}
+
+function getPitch(buf, sr) {
+  let minPos = 0, maxPos = 0, maxVal = -1;
+  for (let i = 0; i < buf.length / 2; i++) {
+    let sum = 0;
+    for (let j = 0; j < buf.length / 2; j++) sum += buf[j] * buf[j + i];
+    if (sum > maxVal) { maxVal = sum; maxPos = i; }
+  }
+  return sr / maxPos;
+}
+</script>
+</body>
+</html>
