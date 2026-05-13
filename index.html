@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Drum Tuner Pro V4 - Barreta</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e; --surface: #161616; --border: #2a2a2a;
+    --accent: #e8c84a; --text: #f0ede8; --muted: #666;
+    --green: #4ae8a0; --blue: #4ab8e8; --red: #e84a5f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; padding: 15px; }
+  header { padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 15px; text-align: center; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent); }
+  .subtitle { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
+
+  .config-panel { background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+  .config-row { display: flex; gap: 8px; align-items: center; }
+  .config-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+  select { flex: 1; background: #222; color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 5px; font-size: 0.9rem; font-family: 'DM Mono', monospace; }
+
+  .intervals-display { background: #111; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .int-chip { font-size: 0.65rem; color: var(--accent); font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+  .int-arrow { font-size: 0.55rem; color: var(--muted); }
+
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+  .btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 12px 5px; border-radius: 8px; font-size: 0.65rem; text-transform: uppercase; cursor: pointer; font-family: 'DM Mono', monospace; }
+  .btn.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+  .btn-note { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; display: block; }
+
+  .mic-btn { width: 100%; padding: 15px; font-size: 0.9rem; font-weight: bold; background: transparent; color: var(--accent); border: 2px solid var(--accent); border-radius: 50px; margin-bottom: 10px; cursor: pointer; font-family: 'DM Mono', monospace; }
+  .mic-btn.on { background: var(--red); color: white; border-color: var(--red); }
+
+  .onset-bar { height: 3px; border-radius: 2px; background: var(--border); margin-bottom: 15px; overflow: hidden; }
+  .onset-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.05s, background 0.1s; border-radius: 2px; }
+
+  .tuner-card { background: var(--surface); border: 1px solid var(--border); padding: 20px 10px; border-radius: 15px; text-align: center; }
+  .note-display { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: 1; margin: 5px 0; transition: color 0.2s; }
+  .meter-container { height: 6px; background: #222; border-radius: 3px; position: relative; margin: 25px 10px; }
+  .needle { position: absolute; width: 4px; height: 25px; background: var(--accent); top: -10px; left: 50%; transform: translateX(-50%); transition: left 0.08s ease-out; border-radius: 2px; }
+  .center-mark { position: absolute; left: 50%; height: 100%; width: 2px; background: var(--muted); }
+  .green-zone { position: absolute; left: calc(50% - 10%); width: 20%; height: 100%; background: rgba(74,232,160,0.15); border-radius: 3px; }
+  .meter-labels { display: flex; justify-content: space-between; font-size: 0.5rem; color: var(--muted); margin-top: 6px; padding: 0 10px; }
+  #statusOut { font-size: 0.8rem; font-weight: bold; letter-spacing: 1px; min-height: 1.2em; margin-top: 10px; }
+  #centsOut { font-size: 0.6rem; color: var(--muted); margin-top: 4px; min-height: 1em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Drum Tuner V4</h1>
+  <div class="subtitle">Afinación por cuartas · Bar mode</div>
+</header>
+
+<div class="config-panel">
+  <div class="config-row">
+    <span class="config-label">Raíz</span>
+    <select id="rootSelect" onchange="buildKit()">
+      <option value="C">Do</option>
+      <option value="C#">Do#</option>
+      <option value="D" selected>Re</option>
+      <option value="D#">Re#</option>
+      <option value="E">Mi</option>
+      <option value="F">Fa</option>
+      <option value="F#">Fa#</option>
+      <option value="G">Sol</option>
+      <option value="G#">Sol#</option>
+      <option value="A">La</option>
+      <option value="A#">La#</option>
+      <option value="B">Si</option>
+    </select>
+  </div>
+  <div class="config-row">
+    <span class="config-label">Estilo</span>
+    <select id="styleSelect" onchange="buildKit()">
+      <option value="rock">Rock / Bar (grave)</option>
+      <option value="standard">Standard</option>
+      <option value="jazz">Jazz / Pop (agudo)</option>
+    </select>
+  </div>
+  <div class="intervals-display" id="intervalsDisplay"></div>
+</div>
+
+<div class="preset-grid" id="presetGrid"></div>
+
+<button class="mic-btn" id="micBtn">▶ ACTIVAR MICRÓFONO</button>
+<div class="onset-bar"><div class="onset-fill" id="onsetFill"></div></div>
+
+<div class="tuner-card">
+  <div id="targetLabel" style="font-size: 0.7rem; color: var(--accent); margin-bottom: 5px;">—</div>
+  <div class="note-display" id="noteOut">—</div>
+  <div id="freqOut" style="color: var(--muted); font-size: 0.9rem; margin-bottom: 10px;">— Hz</div>
+  <div class="meter-container">
+    <div class="green-zone"></div>
+    <div class="center-mark"></div>
+    <div class="needle" id="needle"></div>
+  </div>
+  <div class="meter-labels"><span>−50¢</span><span>0¢</span><span>+50¢</span></div>
+  <div id="statusOut">SILENCIO</div>
+  <div id="centsOut"></div>
+</div>
+
+<script>
+const NOTES   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_ES = { C:'Do','C#':'Do#',D:'Re','D#':'Re#',E:'Mi',
+                  F:'Fa','F#':'Fa#',G:'Sol','G#':'Sol#',A:'La','A#':'La#',B:'Si' };
+
+// Cuartas justas (5 semitonos) entre toms — registro más compacto y grave
+const FOURTH_OFFSETS = {
+  BOMBO:   0,
+  'TOM 1': 5,
+  'TOM 2': 10,
+  'TOM 3': 0,   // misma nota que bombo, octava diferente
+  REDO:    10,
+  CHANCHA: 5,
+};
+
+const BASE_OCTAVES = {
+  rock:     { BOMBO:1, 'TOM 1':2, 'TOM 2':2, 'TOM 3':1, REDO:3, CHANCHA:3 },
+  standard: { BOMBO:2, 'TOM 1':2, 'TOM 2':2, 'TOM 3':2, REDO:3, CHANCHA:3 },
+  jazz:     { BOMBO:2, 'TOM 1':3, 'TOM 2':2, 'TOM 3':2, REDO:3, CHANCHA:4 },
+};
+
+const DRUMS = ['BOMBO', 'TOM 1', 'TOM 2', 'TOM 3', 'REDO', 'CHANCHA'];
+
+function noteToFreq(note, octave) {
+  const idx = NOTES.indexOf(note);
+  return 440 * Math.pow(2, ((octave - 4) * 12 + idx - 9) / 12);
+}
+
+function fourthsChain(root, count) {
+  const chain = [root];
+  for (let i = 1; i < count; i++)
+    chain.push(NOTES[(NOTES.indexOf(chain[i-1]) + 5) % 12]);
+  return chain;
+}
+
+let kit = {};
+let currentDrum = 'BOMBO';
+
+function buildKit() {
+  const root    = document.getElementById('rootSelect').value;
+  const style   = document.getElementById('styleSelect').value;
+  const octaves = BASE_OCTAVES[style];
+  DRUMS.forEach(name => {
+    const note   = NOTES[(NOTES.indexOf(root) + FOURTH_OFFSETS[name]) % 12];
+    const octave = octaves[name];
+    kit[name]    = { note, octave, freq: noteToFreq(note, octave) };
+  });
+  renderPresetGrid();
+  renderIntervals();
+  setTarget(currentDrum);
+}
+
+function renderPresetGrid() {
+  document.getElementById('presetGrid').innerHTML = DRUMS.map(name => {
+    const d = kit[name];
+    return `<button class="btn ${name === currentDrum ? 'active' : ''}" onclick="setTarget('${name}')">
+      <span class="btn-note">${NOTE_ES[d.note]}${d.octave}</span>${name}
+    </button>`;
+  }).join('');
+}
+
+function renderIntervals() {
+  const chain = fourthsChain(document.getElementById('rootSelect').value, 4);
+  document.getElementById('intervalsDisplay').innerHTML = chain.map((n, i) =>
+    `<span class="int-chip">${NOTE_ES[n]}</span>${i < chain.length-1 ? '<span class="int-arrow">→4ª→</span>' : ''}`
+  ).join('');
+}
+
+function setTarget(name) {
+  currentDrum = name;
+  const d = kit[name];
+  targetFreq = d.freq;
+  document.getElementById('targetLabel').innerText =
+    `OBJETIVO: ${name}  ·  ${NOTE_ES[d.note]}${d.octave}  ·  ${d.freq.toFixed(1)} Hz`;
+  renderPresetGrid();
+}
+
+// ── AUDIO ────────────────────────────────────────────────────────────────────
+let audioCtx, analyser;
+let targetFreq  = 73.42;
+let isListening = false;
+let prevRMS     = 0;
+let onsetActive = false;
+let onsetTimer  = null;
+
+const ONSET_THRESHOLD  = 0.07;  // delta RMS para detectar golpe
+const ONSET_WINDOW_MS  = 180;   // ms de ventana de captura post-golpe
+const TUNE_MARGIN_CENTS = 20;   // ±20¢ = afinado para bar
+
+document.getElementById('micBtn').addEventListener('click', async () => {
+  if (isListening) { location.reload(); return; }
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    const source = audioCtx.createMediaStreamSource(stream);
+
+    // Low-pass: elimina armónicos agudos y resonancias de platillos
+    const lpf = audioCtx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.setValueAtTime(500, audioCtx.currentTime);
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 8192;
+    analyser.smoothingTimeConstant = 0.4;
+
+    source.connect(lpf);
+    lpf.connect(analyser);
+
+    isListening = true;
+    document.getElementById('micBtn').innerText = '■ DETENER';
+    document.getElementById('micBtn').classList.add('on');
+    loop();
+  } catch(err) { alert('Error micrófono: ' + err); }
+});
+
+function loop() {
+  if (!isListening) return;
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+
+  const rms   = calcRMS(buf);
+  const delta = rms - prevRMS;
+
+  // Barra de nivel
+  const fill = document.getElementById('onsetFill');
+  fill.style.width      = Math.min(100, rms * 400) + '%';
+  fill.style.background = rms > ONSET_THRESHOLD ? 'var(--green)' : 'var(--accent)';
+
+  // Onset: subida brusca → capturamos pitch en ese instante
+  if (delta > ONSET_THRESHOLD && !onsetActive) {
+    onsetActive = true;
+    const freq = getPitch(buf, audioCtx.sampleRate);
+    if (freq > 25 && freq < 700) processFreq(freq);
+    if (onsetTimer) clearTimeout(onsetTimer);
+    onsetTimer = setTimeout(() => { onsetActive = false; }, ONSET_WINDOW_MS);
+  }
+
+  prevRMS = rms;
+  requestAnimationFrame(loop);
+}
+
+function calcRMS(buf) {
+  return Math.sqrt(buf.reduce((a, v) => a + v*v, 0) / buf.length);
+}
+
+function processFreq(freq) {
+  const cents    = 1200 * Math.log2(freq / targetFreq);
+  const absCents = Math.abs(cents);
+
+  document.getElementById('freqOut').innerText = freq.toFixed(1) + ' Hz';
+  document.getElementById('noteOut').innerText = getNoteName(freq);
+  document.getElementById('needle').style.left = Math.max(0, Math.min(100, 50 + cents / 2)) + '%';
+
+  const status   = document.getElementById('statusOut');
+  const centsOut = document.getElementById('centsOut');
+  const noteDisp = document.getElementById('noteOut');
+
+  if (absCents <= TUNE_MARGIN_CENTS) {
+    status.innerText = '✓ AFINADO';
+    status.style.color = noteDisp.style.color = 'var(--green)';
+    centsOut.innerText = absCents < 5 ? 'perfecto' : `${cents > 0 ? '+' : ''}${cents.toFixed(0)}¢`;
+    centsOut.style.color = 'var(--green)';
+  } else if (cents > 0) {
+    status.innerText = '▲ AFLOJAR PARCHE';
+    status.style.color = 'var(--red)';
+    noteDisp.style.color = 'var(--text)';
+    centsOut.innerText = `+${cents.toFixed(0)}¢ sostenido`;
+    centsOut.style.color = 'var(--red)';
+  } else {
+    status.innerText = '▼ AJUSTAR PARCHE';
+    status.style.color = 'var(--blue)';
+    noteDisp.style.color = 'var(--text)';
+    centsOut.innerText = `${cents.toFixed(0)}¢ bemol`;
+    centsOut.style.color = 'var(--blue)';
+  }
+}
+
+function getNoteName(f) {
+  const s = 12 * Math.log2(f / 440);
+  const n = NOTES[(Math.round(s) % 12 + 12 + 9) % 12];
+  const o = Math.floor((Math.round(s) + 69) / 12) - 1;
+  return (NOTE_ES[n] || n) + o;
+}
+
+function getPitch(buf, sr) {
+  let SIZE = buf.length;
+  if (calcRMS(buf) < 0.005) return -1;
+
+  let r1 = 0, r2 = SIZE - 1;
+  for (let i = 0; i < SIZE/2; i++) if (Math.abs(buf[i])      < 0.15) { r1 = i; break; }
+  for (let i = 1; i < SIZE/2; i++) if (Math.abs(buf[SIZE-i]) < 0.15) { r2 = SIZE-i; break; }
+
+  buf  = buf.slice(r1, r2);
+  SIZE = buf.length;
+  if (SIZE < 64) return -1;
+
+  const c = new Float32Array(SIZE);
+  for (let i = 0; i < SIZE; i++)
+    for (let j = 0; j < SIZE - i; j++)
+      c[i] += buf[j] * buf[j + i];
+
+  let d = 0;
+  while (d < SIZE - 1 && c[d] > c[d+1]) d++;
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < SIZE; i++) if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+  if (maxPos <= 0 || maxPos >= SIZE - 1) return -1;
+
+  // Interpolación parabólica
+  const x1 = c[maxPos-1], x2 = c[maxPos], x3 = c[maxPos+1];
+  const T0 = maxPos + (x3 - x1) / (2 * (2*x2 - x1 - x3));
+  return sr / T0;
+}
+
+buildKit();
+</script>
+</body>
+  </html>
+
